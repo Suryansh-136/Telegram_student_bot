@@ -7,6 +7,7 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
+from keyboards import (login_keyboard,dashboard_keyboard,menu_keyboard)
 import requests
 import os
 import django
@@ -34,8 +35,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         """
 🎓 Welcome to Campus Buddy
 
-Use /menu to see available commands.
-        """
+Use menu to see available commands.
+        """,
+     reply_markup = menu_keyboard()
     )
 
 async def profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -291,18 +293,27 @@ async def logout(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    await update.message.reply_text(
-        """
-🎓 Campus Buddy Menu
+    logged_in = await sync_to_async(
+        TelegramUser.objects.filter(
+            telegram_id=update.effective_user.id
+        ).exists
+)()
+    # Login check yahan hoga
 
-/login      - Login
-/profile    - View Profile
-/attendance - View Attendance
-/timetable  - View Timetable
-/notices    - View Notices
-/logout     - Logout
-        """
-    )
+    if logged_in:
+
+        await update.message.reply_text(
+            "🎓 Campus Buddy",
+            reply_markup=dashboard_keyboard()
+        )
+
+    else:
+
+        await update.message.reply_text(
+            "🔐 Please login first.",
+            reply_markup=login_keyboard()
+        )
+
 
 
 
