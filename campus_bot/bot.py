@@ -210,7 +210,12 @@ async def timetable(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def login(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
+    if update.callback_query:
+        reply = update.callback_query.message
+    else: 
+        reply = update.message
+
+    await reply.reply_text(
         "Enter username:"
     )
     return USERNAME
@@ -374,9 +379,10 @@ def main():
 
 
 login_handler = ConversationHandler(
-    entry_points=[
-        CommandHandler("login", login)
-    ],
+   entry_points=[
+    CommandHandler("login", login),
+    CallbackQueryHandler(login, pattern="^login$")
+],
 
     states={
         USERNAME: [
