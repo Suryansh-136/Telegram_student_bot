@@ -7,6 +7,7 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
+from telegram.ext import CallbackQueryHandler
 from keyboards import (login_keyboard,dashboard_keyboard,menu_keyboard)
 import requests
 import os
@@ -297,22 +298,52 @@ async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         TelegramUser.objects.filter(
             telegram_id=update.effective_user.id
         ).exists
-)()
-    # Login check yahan hoga
+    )()
+
+    # Decide kis object se reply bhejna hai
+    if update.callback_query:
+        reply = update.callback_query.message
+    else:
+        reply = update.message
 
     if logged_in:
 
-        await update.message.reply_text(
-            "🎓 Campus Buddy",
+        await reply.reply_text(
+            "🎓 Campus Buddy Dashboard",
             reply_markup=dashboard_keyboard()
         )
 
     else:
 
-        await update.message.reply_text(
+        await reply.reply_text(
             "🔐 Please login first.",
             reply_markup=login_keyboard()
         )
+
+
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    query = update.callback_query
+
+    await query.answer()
+
+    if query.data == "menu":
+        await menu(update, context)
+
+    elif query.data == "profile":
+        await profile(update, context)
+
+    elif query.data == "attendance":
+        await attendance(update, context)
+
+    elif query.data == "timetable":
+        await timetable(update, context)
+
+    elif query.data == "notice":
+        await notices(update, context)
+
+    elif query.data == "logout":
+        await logout(update, context)
 
 
 
@@ -335,6 +366,7 @@ def main():
     app.add_handler(CommandHandler("logout", logout))
 
     app.add_handler(CommandHandler("menu", menu))
+    app.add_handler(CallbackQueryHandler(button_handler))
     
     print("Bot is running...")
 
