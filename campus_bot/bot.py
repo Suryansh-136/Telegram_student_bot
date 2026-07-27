@@ -129,39 +129,35 @@ async def attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def notices(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    try:
+    if update.callback_query:
+        reply = update.callback_query.message
 
-        notices_list = await sync_to_async(list)(
-
-            Notice.objects.order_by(
-                "-created_at"
-            )[:5]
+    else:
+        reply = update.message
+        
+    notices_list = await sync_to_async(list)(
+        Notice.objects.order_by(
+            "-created_at"
+        )[:5]
     )
 
-        if not notices_list:
+    if not notices_list:
 
-            await update.message.reply_text(
-
-                "No notices available."
+        await reply.reply_text(
+            "No notices available."
             )
 
-            return
-
-        message = "📢 Latest Notices\n\n"
+        return
+    message = "📢 Latest Notices\n\n"
         
-        for notice in notices_list:
-            message += (
-                f"📌{notice.title}\n"
-                f"{notice.content}\n\n"
+    for notice in notices_list:
 
+        message += (
+            f"📌{notice.title}\n"
+            f"{notice.content}\n\n"
             )
-        await update.message.reply_text(message)
+    await reply.reply_text(message)
 
-    except TelegramUser.DoesNotExist:
-
-        await update.message.reply_text(
-            "Please login first using /login"
-        )
 
 async def timetable(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -352,7 +348,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == "timetable":
         await timetable(update, context)
 
-    elif query.data == "notice":
+    elif query.data == "notices":
         await notices(update, context)
 
     elif query.data == "logout":
@@ -373,6 +369,7 @@ def main():
     app.add_handler(CallbackQueryHandler(button_handler))
 
     app.add_handler(CommandHandler("notice", notices))
+    app.add_handler(CallbackQueryHandler(button_handler))
 
     app.add_handler(CommandHandler("timetable", timetable))
 
