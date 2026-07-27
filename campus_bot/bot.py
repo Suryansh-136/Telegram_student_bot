@@ -42,31 +42,37 @@ Use menu to see available commands.
     )
 
 async def profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    if update.callback_query:
+            reply = update.callback_query.message
+    else: 
+            reply = update.message
+
     try:
 
         telegram_user = await sync_to_async(
-        TelegramUser.objects.select_related(
-            "student",
-            "student__user"
-        ).get
+
+            TelegramUser.objects.select_related(
+
+                "student",
+                "student__user"
+            ).get
     )(
         telegram_id=update.effective_user.id
     )
 
         student = telegram_user.student
 
-        await update.message.reply_text(
-        f"""
-👤 Name: {student.user.first_name} {student.user.last_name}
-🎓 Enrollment: {student.enrollment_no}
-🏫 Branch: {student.branch}
-📚 Semester: {student.semester}
-        """
-    )
+        await reply.reply_text(
+        f"👤 Name: {student.user.first_name} {student.user.last_name}\n"
+        f"🎓 Enrollment: {student.enrollment_no}\n"
+        f"🏫 Branch: {student.branch}\n"
+        f"📚 Semester: {student.semester}"
+)
 
     except TelegramUser.DoesNotExist:
 
-        await update.message.reply_text(
+        await reply.reply_text(
             "Please login first using /login"
         )
 
@@ -359,6 +365,7 @@ def main():
     app.add_handler(CommandHandler("start", start))
 
     app.add_handler(CommandHandler("profile", profile))
+    app.add_handler(CallbackQueryHandler(button_handler))
 
     app.add_handler(CommandHandler("attendance", attendance))
 
