@@ -77,6 +77,10 @@ async def profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 async def attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.callback_query:
+        reply = update.callback_query.message
+    else:
+        reply = update.message
 
     try:
 
@@ -98,7 +102,7 @@ async def attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if not attendance_records:
 
-            await update.message.reply_text(
+            await reply.reply_text(
                 "No attendance records found."
             )
             return
@@ -115,15 +119,13 @@ async def attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f" ({percentage}%)\n\n"
             )
 
-        await update.message.reply_text(message)
+        await reply.reply_text(message)
 
     except TelegramUser.DoesNotExist:
 
-        await update.message.reply_text(
+        await reply.reply_text(
             "Please login first using /login"
         )
-
-print("Attendance checkpoint line 112")
 
 async def notices(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -368,6 +370,7 @@ def main():
     app.add_handler(CallbackQueryHandler(button_handler))
 
     app.add_handler(CommandHandler("attendance", attendance))
+    app.add_handler(CallbackQueryHandler(button_handler))
 
     app.add_handler(CommandHandler("notice", notices))
 
