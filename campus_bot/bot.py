@@ -161,6 +161,12 @@ async def notices(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def timetable(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    if update.callback_query:
+        reply = update.callback_query.message
+
+    else:
+        reply = update.message
+
     try:
 
         telegram_user = await sync_to_async(
@@ -183,7 +189,7 @@ async def timetable(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
         if not timetable_records:
-            await update.message.reply_text(
+            await reply.reply_text(
             "No timetable found."
         )
             return
@@ -203,11 +209,11 @@ async def timetable(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"{record.subject_name}\n"
             )
 
-        await update.message.reply_text(message)
+        await reply.reply_text(message)
 
     except TelegramUser.DoesNotExist:
 
-        await update.message.reply_text(
+        await reply.reply_text(
             "Please login first using /login"
         )    
 
@@ -372,6 +378,7 @@ def main():
     app.add_handler(CallbackQueryHandler(button_handler))
 
     app.add_handler(CommandHandler("timetable", timetable))
+    app.add_handler(CallbackQueryHandler(button_handler))
 
     app.add_handler(login_handler)
 
