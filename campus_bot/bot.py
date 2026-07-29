@@ -232,8 +232,14 @@ async def login(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def get_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["username"] = update.message.text
+    
+    if update.callback_query:
+        reply = update.callback_query.message
 
-    await update.message.reply_text(
+    else:
+        reply = update.message
+
+    await reply.reply_text(
         "Enter password:"
     )
     return PASSWORD
@@ -284,6 +290,12 @@ async def get_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def logout(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    if update.callback_query:
+        reply = update.callback_query.message
+
+    else:
+        reply = update.message
+
     try:
 
         telegram_user = await sync_to_async(
@@ -296,13 +308,13 @@ async def logout(update: Update, context: ContextTypes.DEFAULT_TYPE):
             telegram_user.delete
         )()
 
-        await update.message.reply_text(
+        await reply.reply_text(
             "Logged out successfully ✅"
         )
 
     except TelegramUser.DoesNotExist:
 
-        await update.message.reply_text(
+        await reply.reply_text(
             "You are not logged in."
         )
 
@@ -369,23 +381,22 @@ def main():
     app.add_handler(CommandHandler("start", start))
 
     app.add_handler(CommandHandler("profile", profile))
-    app.add_handler(CallbackQueryHandler(button_handler))
 
     app.add_handler(CommandHandler("attendance", attendance))
-    app.add_handler(CallbackQueryHandler(button_handler))
 
     app.add_handler(CommandHandler("notice", notices))
-    app.add_handler(CallbackQueryHandler(button_handler))
 
     app.add_handler(CommandHandler("timetable", timetable))
-    app.add_handler(CallbackQueryHandler(button_handler))
 
     app.add_handler(login_handler)
 
     app.add_handler(CommandHandler("logout", logout))
 
     app.add_handler(CommandHandler("menu", menu))
-    app.add_handler(CallbackQueryHandler(button_handler))
+
+    app.add_handler(CallbackQueryHandler(button_handler,
+pattern="^(menu|profile|attendance|notice|timetable|logout)$"
+))
     
     print("Bot is running...")
 
