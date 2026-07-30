@@ -8,7 +8,7 @@ from telegram.ext import (
     filters,
 )
 from telegram.ext import CallbackQueryHandler
-from keyboards import (login_keyboard,dashboard_keyboard,menu_keyboard)
+from keyboards import (login_keyboard,dashboard_keyboard,menu_keyboard,back_keyboard)
 import requests
 import os
 import django
@@ -67,7 +67,8 @@ async def profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"👤 Name: {student.user.first_name} {student.user.last_name}\n"
         f"🎓 Enrollment: {student.enrollment_no}\n"
         f"🏫 Branch: {student.branch}\n"
-        f"📚 Semester: {student.semester}"
+        f"📚 Semester: {student.semester}",
+        reply_markup = back_keyboard()
 )
 
     except TelegramUser.DoesNotExist:
@@ -368,6 +369,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif query.data == "notices":
         await notices(update, context)
+
+    elif query.data == "back":
+        await back(update,context)
 
     elif query.data == "logout":
         await logout(update, context)

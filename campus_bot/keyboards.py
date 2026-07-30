@@ -14,6 +14,22 @@ def menu_keyboard():
 
     return InlineKeyboardMarkup(keyboard)
 
+
+def back_keyboard():
+
+    keyboard = [
+        [
+
+            InlineKeyboardButton(
+                "🔙 Back",
+                callback_data = "menu"
+            )
+        ]
+    ]
+
+    return InlineKeyboardMarkup(keyboard)
+
+
 def login_keyboard():
 
     keyboard = [
