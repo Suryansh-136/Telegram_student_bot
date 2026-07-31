@@ -104,7 +104,8 @@ async def attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not attendance_records:
 
             await reply.reply_text(
-                "No attendance records found."
+                "No attendance records found.",
+                reply_markup = back_keyboard()
             )
             return
 
@@ -120,7 +121,8 @@ async def attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f" ({percentage}%)\n\n"
             )
 
-        await reply.reply_text(message)
+        await reply.reply_text(message,
+        reply_markup = back_keyboard())
 
     except TelegramUser.DoesNotExist:
 
