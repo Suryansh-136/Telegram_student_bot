@@ -195,7 +195,8 @@ async def timetable(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if not timetable_records:
             await reply.reply_text(
-            "No timetable found."
+            "No timetable found.",
+            reply_markup = back_keyboard()
         )
             return
 
@@ -214,7 +215,8 @@ async def timetable(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"{record.subject_name}\n"
             )
 
-        await reply.reply_text(message)
+        await reply.reply_text(message,
+        reply_markup = back_keyboard())
 
     except TelegramUser.DoesNotExist:
 
