@@ -147,7 +147,8 @@ async def notices(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not notices_list:
 
         await reply.reply_text(
-            "No notices available."
+            "No notices available.",
+            reply_markup = back_keyboard()
             )
 
         return
@@ -159,7 +160,8 @@ async def notices(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"📌{notice.title}\n"
             f"{notice.content}\n\n"
             )
-    await reply.reply_text(message)
+    await reply.reply_text(message,
+    reply_markup = back_keyboard())
 
 
 async def timetable(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -401,7 +403,7 @@ def main():
     app.add_handler(CommandHandler("menu", menu))
 
     app.add_handler(CallbackQueryHandler(button_handler,
-pattern="^(menu|profile|attendance|notice|timetable|logout)$"
+pattern="^(menu|profile|attendance|notices|timetable|logout)$"
 ))
     
     print("Bot is running...")
