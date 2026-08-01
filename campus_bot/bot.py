@@ -43,10 +43,7 @@ Use menu to see available commands.
 
 async def profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    if update.callback_query:
-            reply = update.callback_query.message
-    else: 
-            reply = update.message
+    query = update.callback_query
 
     try:
 
@@ -63,20 +60,39 @@ async def profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         student = telegram_user.student
 
-        await reply.reply_text(
-        f"👤 Name: {student.user.first_name} {student.user.last_name}\n"
-        f"🎓 Enrollment: {student.enrollment_no}\n"
-        f"🏫 Branch: {student.branch}\n"
-        f"📚 Semester: {student.semester}",
-        reply_markup = back_keyboard()
-)
-
-    except TelegramUser.DoesNotExist:
-
-        await reply.reply_text(
-            "Please login first using /login"
+        message = (
+            f"👤 Name: {student.user.first_name} {student.user.last_name}\n"
+            f"🎓 Enrollment: {student.enrollment_no}\n"
+            f"🏫 Branch: {student.branch}\n"
+            f"📚 Semester: {student.semester}"
+        )
+           
+        if query:
+            await query.edit_message_text(
+                text = message,
+                reply_markup = back_keyboard()
+        )
+        else:
+            await update.message.reply_text(
+                message,
+                reply_markup = back_keyboard()
         )
 
+    except TelegramUser.DoesNotExist:
+        
+        if query:
+            await query.edit_message_text(
+                text = "Please Login first using /login",
+                reply_markup = login_keyboard()
+            )
+
+        else:
+            await update.message.reply_text(
+                "Please Login first using /login",
+                reply_markup = login_keyboard()
+            )
+
+       
 async def attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.callback_query:
         reply = update.callback_query.message
