@@ -94,11 +94,8 @@ async def profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
        
 async def attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.callback_query:
-        reply = update.callback_query.message
-    else:
-        reply = update.message
 
+    query = update.callback_query
     try:
 
         telegram_user = await sync_to_async(
@@ -118,11 +115,18 @@ async def attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         if not attendance_records:
-
-            await reply.reply_text(
-                "No attendance records found.",
-                reply_markup = back_keyboard()
-            )
+            if query:
+                await query.edit_message_text(
+                    text="No records found",
+                    reply_markup=back_keyboard()
+                )
+            
+            else:
+                await update.message.reply_text(
+                    "No records found",
+                    reply_markup=back_keyboard()
+                )
+           
             return
 
         message = "📊 Attendance\n\n"
@@ -137,14 +141,31 @@ async def attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f" ({percentage}%)\n\n"
             )
 
-        await reply.reply_text(message,
-        reply_markup = back_keyboard())
+        if query:
+            await query.edit_message_text(
+                text = message,
+                reply_markup = back_keyboard()
+            )
+
+        else:
+            await update.message.reply_text(
+                message,
+                reply_markup = back_keyboard()
+            )
 
     except TelegramUser.DoesNotExist:
 
-        await reply.reply_text(
-            "Please login first using /login"
+        if query:     
+            await query.edit_message_text(
+            text = "Please login first using /login",
+            reply_markup = login_keyboard()
         )
+
+        else:
+            await update.message.reply_text(
+                "Please Login first using /login",
+                reply_markup = login_keyboard()
+            )
 
 async def notices(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
