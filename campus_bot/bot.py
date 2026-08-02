@@ -203,7 +203,7 @@ async def notices(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if query:
         await query.edit_message_text(message,
         reply_markup = back_keyboard())
-        
+
     else:
         await update.message.reply_text(message,
         reply_markup=back_keyboard()
@@ -211,12 +211,7 @@ async def notices(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def timetable(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-    if update.callback_query:
-        reply = update.callback_query.message
-
-    else:
-        reply = update.message
+    query = update.callback_query
 
     try:
 
@@ -240,10 +235,17 @@ async def timetable(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
         if not timetable_records:
-            await reply.reply_text(
-            "No timetable found.",
-            reply_markup = back_keyboard()
-        )
+            if query:
+                await query.edit_message_text(
+                text="No timetable found.",
+                reply_markup = back_keyboard()
+            )
+
+            else:
+                await update.message.reply_text(
+                    "No timetable found.",
+                    reply_markup=back_keyboard()
+                )
             return
 
         message = "📅 Timetable\n\n"
@@ -260,15 +262,30 @@ async def timetable(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"{record.end_time.strftime('%H:%M')} | "
                 f"{record.subject_name}\n"
             )
+        if query:
+            await query.edit_message_text(
+                text=message,
+                reply_markup = back_keyboard())
 
-        await reply.reply_text(message,
-        reply_markup = back_keyboard())
+        else:
+            await update.message.reply_text(
+                message,
+                reply_markup=back_keyboard()
+                )
 
     except TelegramUser.DoesNotExist:
-
-        await reply.reply_text(
-            "Please login first using /login"
-        )    
+        
+        if query:
+            await query.edit_message_text(
+                text="Please login first using /login",
+                reply_markup=login_keyboard()
+            )    
+        
+        else:
+            await update.message.reply_text(
+                "Please Login first using /login",
+                reply_markup=login_keyboard()
+            )
 
 
 
