@@ -169,12 +169,8 @@ async def attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def notices(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    if update.callback_query:
-        reply = update.callback_query.message
+    query = update.callback_query
 
-    else:
-        reply = update.message
-        
     notices_list = await sync_to_async(list)(
         Notice.objects.order_by(
             "-created_at"
@@ -182,10 +178,16 @@ async def notices(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     if not notices_list:
+        if query:
+            await query.edit_message_text(
+                text="No notices available.",
+                reply_markup = back_keyboard()
+                )
 
-        await reply.reply_text(
-            "No notices available.",
-            reply_markup = back_keyboard()
+        else:
+            await update.message.reply_text(
+                "No notices available",
+                reply_markup=back_keyboard()
             )
 
         return
@@ -197,8 +199,15 @@ async def notices(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"📌{notice.title}\n"
             f"{notice.content}\n\n"
             )
-    await reply.reply_text(message,
-    reply_markup = back_keyboard())
+
+    if query:
+        await query.edit_message_text(message,
+        reply_markup = back_keyboard())
+        
+    else:
+        await update.message.reply_text(message,
+        reply_markup=back_keyboard()
+        )
 
 
 async def timetable(update: Update, context: ContextTypes.DEFAULT_TYPE):
