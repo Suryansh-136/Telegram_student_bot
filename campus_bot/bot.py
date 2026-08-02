@@ -274,7 +274,7 @@ async def timetable(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
 
     except TelegramUser.DoesNotExist:
-        
+
         if query:
             await query.edit_message_text(
                 text="Please login first using /login",
@@ -391,31 +391,41 @@ async def logout(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    query = update.callback_query
+
     logged_in = await sync_to_async(
         TelegramUser.objects.filter(
             telegram_id=update.effective_user.id
         ).exists
     )()
 
-    # Decide kis object se reply bhejna hai
-    if update.callback_query:
-        reply = update.callback_query.message
-    else:
-        reply = update.message
-
     if logged_in:
 
-        await reply.reply_text(
-            "🎓 Campus Buddy Dashboard",
-            reply_markup=dashboard_keyboard()
-        )
+        if query:
+            await query.edit_message_text(
+                text="🎓 Campus Buddy Dashboard",
+                reply_markup=dashboard_keyboard()
+            )
+
+        else:
+            await update.message.reply_text(
+                "🎓 Campus Buddy Dashboard",
+                reply_markup=dashboard_keyboard()
+            )
 
     else:
 
-        await reply.reply_text(
-            "🔐 Please login first.",
-            reply_markup=login_keyboard()
-        )
+        if query:
+            await query.edit_message_text(
+                text="🔐 Please login first.",
+                reply_markup=login_keyboard()
+            )
+
+        else:
+            await update.message.reply_text(
+                "🔐 Please login first.",
+                reply_markup=login_keyboard()
+            )
 
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
