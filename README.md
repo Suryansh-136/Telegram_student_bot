@@ -26,3 +26,10 @@ Campus Buddy is a Telegram-based student assistant built with **Django REST Fram
 - Python Telegram Bot
 - Git & GitHub
 
+# Screenshots 
+<img width="784" height="434" alt="Screenshot 2026-07-31 161552" src="https://github.com/user-attachments/assets/94fd60cc-89ed-4f1f-a890-311d851931c3" /> <br>
+
+<img width="718" height="434" alt="Screenshot 2026-07-31 161639" src="https://github.com/user-attachments/assets/60c12e2d-f73c-4d03-9405-3daf4e989f2e" /> <br>
+
+
+
