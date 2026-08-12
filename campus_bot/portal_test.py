@@ -1,25 +1,31 @@
-from bs4 import BeautifulSoup
 import os
 import requests
+
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
-print("portal_test.py started")
+
+# -----------------------------
+# Load Environment Variables
+# -----------------------------
 
 load_dotenv()
 
 username = os.getenv("PORTAL_USERNAME")
 password = os.getenv("PORTAL_PASSWORD")
 
-print("Environment loaded")
-print("Username:", username)
-print("Password loaded:", password is not None)
 
+# -----------------------------
+# Create Session
+# -----------------------------
 
-# 1. Session create
 session = requests.Session()
 
 
-# 2. Login page open
+# -----------------------------
+# Step 1: Open Login Page
+# -----------------------------
+
 login_page_url = "https://cportal.siet.in/indexLogin.php"
 
 response = session.get(login_page_url)
@@ -27,10 +33,13 @@ response = session.get(login_page_url)
 print("Login page status:", response.status_code)
 
 
-# 3. Portal login
+# -----------------------------
+# Step 2: Login
+# -----------------------------
+
 login_url = "https://cportal.siet.in/getdata/execute.php"
 
-payload = {
+login_payload = {
     "login_id": username,
     "pass_wd": password,
     "isCaptcha": "false"
@@ -38,23 +47,10 @@ payload = {
 
 response = session.post(
     login_url,
-    data=payload
+    data=login_payload
 )
 
 print("Login status:", response.status_code)
-print("Current URL:", response.url)
-
-
-# 4. Check cookies
-print("\nSession cookies:")
-
-for cookie in session.cookies:
-    print(cookie.name, "=", cookie.value)
-
-
-# 5. Response preview
-print("\nResponse preview:")
-print(response.text[:500])
 
 
 # -----------------------------
@@ -75,15 +71,11 @@ attendance_response = session.post(
     data=attendance_payload
 )
 
-print("\nAttendance status:", attendance_response.status_code)
-print("Attendance URL:", attendance_response.url)
-
-print("\nAttendance response preview:")
-print(attendance_response.text[:1000])
+print("Attendance status:", attendance_response.status_code)
 
 
 # -----------------------------
-# Step 4: Parse Attendance HTML
+# Step 4: Parse HTML
 # -----------------------------
 
 soup = BeautifulSoup(
@@ -91,17 +83,23 @@ soup = BeautifulSoup(
     "html.parser"
 )
 
+
+# -----------------------------
+# Step 5: Extract Attendance
+# -----------------------------
+
 tables = soup.find_all("table")
 
-print("\nNumber of tables found:", len(tables))
+attendance_data = []
 
-for index, table in enumerate(tables, start=1):
+if tables:
 
-    print(f"\n--- TABLE {index} ---")
+    table = tables[0]
 
     rows = table.find_all("tr")
 
-    for row in rows:
+    for row in rows[1:]:
+
         cells = row.find_all(["th", "td"])
 
         data = [
@@ -109,46 +107,104 @@ for index, table in enumerate(tables, start=1):
             for cell in cells
         ]
 
-        print(data)
+        if not data:
+            continue
+
+        subject_code = data[0]
+
+        # Skip grand total row
+        if subject_code == "GRAND TOTAL":
+            continue
+
+        attendance_data.append({
+            "subject": subject_code,
+            "present": data[-4],
+            "leave": data[-3],
+            "absent": data[-2],
+            "percentage": data[-1]
+        })
 
 
 # -----------------------------
-# Step 5: Extract Attendance
+# Step 6: Extract Subject Mapping
 # -----------------------------
 
-table = tables[0]
+subject_mapping = {}
 
-rows = table.find_all("tr")
+subject_breakdown = soup.find(
+    string=lambda text:
+        text and "Subject Breakdown" in text
+)
 
-attendance_data = []
+if subject_breakdown:
 
-for row in rows[1:]:
-    cells = row.find_all(["th", "td"])
+    breakdown_container = (
+        subject_breakdown.parent.parent
+    )
 
-    data = [
-        cell.get_text(" ", strip=True)
-        for cell in cells
-    ]
+    items = breakdown_container.find_all(
+        "div",
+        class_="flex"
+    )
 
-    if not data:
-        continue
+    for item in items:
 
-    subject = data[0]
+        spans = item.find_all("span")
 
-    # Skip grand total
-    if subject == "GRAND TOTAL":
-        continue
+        if len(spans) >= 2:
 
-    attendance_data.append({
-        "subject": subject,
-        "present": data[-4],
-        "leave": data[-3],
-        "absent": data[-2],
-        "percentage": data[-1]
-    })
+            code = spans[0].get_text(
+                strip=True
+            )
+
+            name = spans[1].get_text(
+                strip=True
+            )
+
+            subject_mapping[code] = name
 
 
-print("\nStructured Attendance:")
+# -----------------------------
+# Step 7: Combine Data
+# -----------------------------
 
 for record in attendance_data:
-    print(record)
+
+    code = record["subject"]
+
+    record["subject_name"] = subject_mapping.get(
+        code,
+        code
+    )
+
+
+# -----------------------------
+# Step 8: Display Result
+# -----------------------------
+
+print("\nAttendance:")
+
+for record in attendance_data:
+
+    print(
+        f"{record['subject_name']} "
+        f"({record['subject']})"
+    )
+
+    print(
+        f"Present: {record['present']}"
+    )
+
+    print(
+        f"Leave: {record['leave']}"
+    )
+
+    print(
+        f"Absent: {record['absent']}"
+    )
+
+    print(
+        f"Percentage: {record['percentage']}"
+    )
+
+    print()
