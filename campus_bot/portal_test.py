@@ -110,3 +110,45 @@ for index, table in enumerate(tables, start=1):
         ]
 
         print(data)
+
+
+# -----------------------------
+# Step 5: Extract Attendance
+# -----------------------------
+
+table = tables[0]
+
+rows = table.find_all("tr")
+
+attendance_data = []
+
+for row in rows[1:]:
+    cells = row.find_all(["th", "td"])
+
+    data = [
+        cell.get_text(" ", strip=True)
+        for cell in cells
+    ]
+
+    if not data:
+        continue
+
+    subject = data[0]
+
+    # Skip grand total
+    if subject == "GRAND TOTAL":
+        continue
+
+    attendance_data.append({
+        "subject": subject,
+        "present": data[-4],
+        "leave": data[-3],
+        "absent": data[-2],
+        "percentage": data[-1]
+    })
+
+
+print("\nStructured Attendance:")
+
+for record in attendance_data:
+    print(record)
