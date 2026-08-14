@@ -25,7 +25,7 @@ def get_portal_attendance(username, password, month):
         "https://cportal.siet.in/indexLogin.php"
     )
 
-    session.get(login_page_url)
+    session.get(login_page_url, timeout=(5,30))
 
 
     # -----------------------------
@@ -44,7 +44,7 @@ def get_portal_attendance(username, password, month):
 
     login_response = session.post(
         login_url,
-        data=login_payload
+        data=login_payload,timeout=(5,30)
     )
 
 
@@ -71,7 +71,8 @@ def get_portal_attendance(username, password, month):
 
     attendance_response = session.post(
         attendance_url,
-        data=attendance_payload
+        data=attendance_payload,
+        timeout=(5,30)
     )
 
 
