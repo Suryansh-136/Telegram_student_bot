@@ -1,12 +1,18 @@
 import os
 import requests
+import logging
 
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 
 load_dotenv()
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s"
 
+)
+logger = logging.getLogger(__name__)
 
 # =========================================
 # Custom Exceptions
@@ -53,7 +59,7 @@ def get_portal_attendance(username, password, month):
         )
 
     month = str(month).zfill(2)
-    
+
     if str(month) not in {
         "01", "02", "03", "04",
         "05", "06", "07", "08",
@@ -74,13 +80,17 @@ def get_portal_attendance(username, password, month):
         login_page_url = (
             "https://cportal.siet.in/indexLogin.php"
         )
+        logger.info("Opening portal login page")
 
         login_page_response = session.get(
             login_page_url,
             timeout=(5, 30)
         )
 
+        logger.info("Sending login request")
+
         login_page_response.raise_for_status()
+
 
 
         # -----------------------------
@@ -105,6 +115,11 @@ def get_portal_attendance(username, password, month):
 
         login_response.raise_for_status()
 
+        logger.info(
+        "Login response received: HTTP %s",
+        login_response.status_code
+        )
+
 
         # -----------------------------
         # Get Attendance
@@ -114,7 +129,7 @@ def get_portal_attendance(username, password, month):
             "https://cportal.siet.in/"
             "studentnew/students/attendance_class_step1"
         )
-
+        logger.info("Requesting attendance for month %s", month)
         attendance_payload = {
             "months_01": month
         }
@@ -126,6 +141,15 @@ def get_portal_attendance(username, password, month):
         )
 
         attendance_response.raise_for_status()
+        logger.info(
+        "Attendance response received: HTTP %s",
+        attendance_response.status_code
+        )
+
+        if not attendance_response.text.strip():
+            raise PortalError(
+                "Portal returned an empty response"
+            )
 
 
         # -----------------------------
@@ -136,13 +160,16 @@ def get_portal_attendance(username, password, month):
             attendance_response.text,
             "html.parser"
         )
-
-
         # -----------------------------
         # Extract Attendance
         # -----------------------------
 
         tables = soup.find_all("table")
+
+        if not tables:
+            raise PortalError(
+                "Attendance table does not found in Portal"
+            )
 
         attendance_data = []
 
@@ -151,6 +178,11 @@ def get_portal_attendance(username, password, month):
             table = tables[0]
 
             rows = table.find_all("tr")
+
+            if len(rows)<2:
+                raise PortalError(
+                    "Attendance table is empty"
+                )
 
             for row in rows[1:]:
 
@@ -239,7 +271,10 @@ def get_portal_attendance(username, password, month):
                     code
                 )
             )
-
+        logger.info(
+            "Attendance parsed successfully: %d records",
+            len(attendance_data)
+        )
 
         return attendance_data
 
@@ -249,6 +284,7 @@ def get_portal_attendance(username, password, month):
     # =================================
 
     except requests.Timeout as exc:
+        logger.error("Portal request timed out")
 
         raise PortalTimeoutError(
             "Portal request timed out."
@@ -260,6 +296,7 @@ def get_portal_attendance(username, password, month):
     # =================================
 
     except requests.ConnectionError as exc:
+        logger.error("Could not connect to Portal")
 
         raise PortalConnectionError(
             "Could not connect to the portal."
@@ -272,6 +309,9 @@ def get_portal_attendance(username, password, month):
 
     except requests.HTTPError as exc:
 
+        logger.error("Portal returned HTTP %S",
+        exc.response.status_code)
+
         raise PortalHTTPError(
             f"Portal returned HTTP "
             f"{exc.response.status_code}."
@@ -283,6 +323,7 @@ def get_portal_attendance(username, password, month):
     # =================================
 
     except Exception as exc:
+        logger.exception("Unexpected portal error")
 
         raise PortalError(
             "Unexpected portal error."
