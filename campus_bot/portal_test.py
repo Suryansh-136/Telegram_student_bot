@@ -34,6 +34,35 @@ class PortalHTTPError(PortalError):
 
 def get_portal_attendance(username, password, month):
 
+    # -----------------------------
+    # Input Validation
+    # -----------------------------
+
+    if not username or not username.strip():
+        raise PortalError(
+            "Portal username is required."
+        )
+    if not password:
+        raise PortalError(
+            "Portal password is required."
+        )
+
+    if not month:
+        raise PortalError(
+            "Attendance month is required."
+        )
+
+    month = str(month).zfill(2)
+    
+    if str(month) not in {
+        "01", "02", "03", "04",
+        "05", "06", "07", "08",
+        "09", "10", "11", "12"
+    }:
+        raise PortalError(
+            "Invalid attendance month"
+        )
+
     session = requests.Session()
 
     try:
