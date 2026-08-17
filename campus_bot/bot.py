@@ -9,6 +9,7 @@ from telegram.ext import (
 )
 from telegram.ext import CallbackQueryHandler
 from keyboards import (login_keyboard,dashboard_keyboard,menu_keyboard,back_keyboard)
+from portal_service import (login_user,PortalError)
 import requests
 import os
 import django
@@ -296,7 +297,7 @@ async def login(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply = update.message
 
     await reply.reply_text(
-        "Enter username:"
+        "Enter College I'D:"
     )
     return USERNAME
 
@@ -314,46 +315,58 @@ async def get_username(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return PASSWORD
 
-async def get_password(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["password"] = update.message.text
+async def get_password(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
 
-    username = context.user_data["username"]
-    password = context.user_data["password"]
+    password = update.message.text
 
-    response = requests.post(
-        "http://127.0.0.1:8000/token-login/",
-        json={
-            "username": username,
-            "password": password
-        }
+    college_id = context.user_data.get(
+        "username"
     )
 
-    if response.status_code == 200:
+    if not college_id:
+        await update.message.reply_text(
+            "❌ College ID missing. Please use /login again."
+        )
 
-        user = await sync_to_async(
-            User.objects.get
-        )(username=username)
+        return ConversationHandler.END
 
-        student = await sync_to_async(
-            StudentProfile.objects.get
-        )(user=user)
+    try:
 
-        await sync_to_async(
-            TelegramUser.objects.update_or_create
-        )(
-            telegram_id=update.effective_user.id,
-            defaults={
-                "student": student
-            }
+        await update.message.reply_text(
+            "🔐 Logging into college portal..."
+        )
+
+        await sync_to_async(login_user)(
+            update.effective_user.id,
+            college_id,
+            password
         )
 
         await update.message.reply_text(
-            "Login successful ✅"
+            "Login successful ✅\n\n"
+            "You can now access your portal data "
+            "for the next 10 minutes."
         )
 
-    else:
+    except PortalError as error:
+
         await update.message.reply_text(
-            "Invalid username or password ❌"
+            f"❌ Portal login failed:\n{error}"
+        )
+
+    finally:
+
+        context.user_data.pop(
+            "username",
+            None
+        )
+
+        context.user_data.pop(
+            "password",
+            None
         )
 
     return ConversationHandler.END
