@@ -9,7 +9,15 @@ from telegram.ext import (
 )
 from telegram.ext import CallbackQueryHandler
 from keyboards import (login_keyboard,dashboard_keyboard,menu_keyboard,back_keyboard)
-from portal_service import (login_user,PortalError)
+from portal_service import (
+    get_portal_attendance,
+    login_user,
+    PortalError,
+    PortalLoginError,
+    PortalTimeoutError,
+    PortalConnectionError,
+    PortalHTTPError,
+)
 import requests
 import os
 import django
@@ -94,79 +102,87 @@ async def profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
        
-async def attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def attendance(update, context):
 
-    query = update.callback_query
+    telegram_id = update.effective_user.id
+
     try:
 
-        telegram_user = await sync_to_async(
-            TelegramUser.objects.select_related(
-                "student"
-            ).get
-        )(
-            telegram_id=update.effective_user.id
+        await update.message.reply_text(
+            "📊 Fetching your attendance..."
         )
 
-        attendance_records = await sync_to_async(
-            list
+        attendance_data = await sync_to_async(
+            get_portal_attendance
         )(
-            Attendance.objects.filter(
-                student=telegram_user.student
+            telegram_id,
+            "07"
+        )
+
+        if not attendance_data:
+
+            await update.message.reply_text(
+                "📊 No attendance data found."
             )
-        )
 
-        if not attendance_records:
-            if query:
-                await query.edit_message_text(
-                    text="No records found",
-                    reply_markup=back_keyboard()
-                )
-            
-            else:
-                await update.message.reply_text(
-                    "No records found",
-                    reply_markup=back_keyboard()
-                )
-           
             return
 
-        message = "📊 Attendance\n\n"
+        message = "📊 *Your Attendance*\n\n"
 
-        for record in attendance_records:
-
-            percentage = record.attendance_percentage()
+        for record in attendance_data:
 
             message += (
-                f"📘 {record.subject_name}\n"
-                f"{record.attended_classes}/{record.total_classes}"
-                f" ({percentage}%)\n\n"
+                f"📘 *{record['subject_name']}*\n"
+                f"Present: {record['present']}\n"
+                f"Leave: {record['leave']}\n"
+                f"Absent: {record['absent']}\n"
+                f"Percentage: {record['percentage']}\n\n"
             )
 
-        if query:
-            await query.edit_message_text(
-                text = message,
-                reply_markup = back_keyboard()
-            )
-
-        else:
-            await update.message.reply_text(
-                message,
-                reply_markup = back_keyboard()
-            )
-
-    except TelegramUser.DoesNotExist:
-
-        if query:     
-            await query.edit_message_text(
-            text = "Please login first using /login",
-            reply_markup = login_keyboard()
+        await update.message.reply_text(
+            message,
+            parse_mode="Markdown"
         )
 
-        else:
-            await update.message.reply_text(
-                "Please Login first using /login",
-                reply_markup = login_keyboard()
-            )
+    except PortalLoginError:
+
+        await update.message.reply_text(
+            "🔐 Your portal session has expired.\n\n"
+            "Please use /login again."
+        )
+
+    except PortalTimeoutError:
+
+        await update.message.reply_text(
+            "⚠️ Portal request timed out.\n"
+            "Please try again."
+        )
+
+    except PortalConnectionError:
+
+        await update.message.reply_text(
+            "⚠️ Could not connect to the college portal.\n"
+            "Please try again later."
+        )
+
+    except PortalHTTPError:
+
+        await update.message.reply_text(
+            "⚠️ College portal returned an error.\n"
+            "Please try again later."
+        )
+
+    except PortalError as error:
+
+        logger.error(
+            "Attendance error for Telegram user %s: %s",
+            telegram_id,
+            error
+        )
+
+        await update.message.reply_text(
+            "❌ Could not fetch attendance."
+        )
 
 async def notices(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
