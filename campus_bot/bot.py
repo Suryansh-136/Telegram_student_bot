@@ -7,6 +7,7 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
+from telegram import (Update, InlineKeyboardButton, InlineKeyboardMarkup)
 from telegram.ext import CallbackQueryHandler
 from keyboards import (login_keyboard,dashboard_keyboard,menu_keyboard,back_keyboard)
 from portal_service import (
@@ -101,7 +102,172 @@ async def profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup = login_keyboard()
             )
 
-       
+
+async def attendance_months(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                "January",
+                callback_data="attendance_01"
+            ),
+            InlineKeyboardButton(
+                "February",
+                callback_data="attendance_02"
+            ),
+            InlineKeyboardButton(
+                "March",
+                callback_data="attendance_03"
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                "April",
+                callback_data="attendance_04"
+            ),
+            InlineKeyboardButton(
+                "May",
+                callback_data="attendance_05"
+            ),
+            InlineKeyboardButton(
+                "June",
+                callback_data="attendance_06"
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                "July",
+                callback_data="attendance_07"
+            ),
+            InlineKeyboardButton(
+                "August",
+                callback_data="attendance_08"
+            ),
+            InlineKeyboardButton(
+                "September",
+                callback_data="attendance_09"
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                "October",
+                callback_data="attendance_10"
+            ),
+            InlineKeyboardButton(
+                "November",
+                callback_data="attendance_11"
+            ),
+            InlineKeyboardButton(
+                "December",
+                callback_data="attendance_12"
+            ),
+        ],
+    ]
+
+    reply_markup = InlineKeyboardMarkup(
+        keyboard
+    )
+
+    await update.message.reply_text(
+        "📅 Select attendance month:",
+        reply_markup=reply_markup
+    )
+
+async def attendance_month_callback(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
+
+    query = update.callback_query
+
+    await query.answer()
+
+    telegram_id = update.effective_user.id
+
+    month = query.data.replace(
+        "attendance_",
+        ""
+    )
+
+    try:
+
+        await query.edit_message_text(
+            "📊 Fetching attendance..."
+        )
+
+        attendance_data = await sync_to_async(
+            get_portal_attendance
+        )(
+            telegram_id,
+            month
+        )
+
+        if not attendance_data:
+
+            await query.edit_message_text(
+                "📊 No attendance data found."
+            )
+
+            return
+
+        message = "📊 *Your Attendance*\n\n"
+
+        for record in attendance_data:
+
+            message += (
+                f"📘 *{record['subject_name']}*\n"
+                f"Present: {record['present']}\n"
+                f"Leave: {record['leave']}\n"
+                f"Absent: {record['absent']}\n"
+                f"Percentage: {record['percentage']}\n\n"
+            )
+
+        await query.edit_message_text(
+            message,
+            parse_mode="Markdown"
+        )
+
+    except PortalLoginError:
+
+        await query.edit_message_text(
+            "🔐 Your portal session has expired.\n\n"
+            "Please use /login again."
+        )
+
+    except PortalTimeoutError:
+
+        await query.edit_message_text(
+            "⚠️ Portal request timed out."
+        )
+
+    except PortalConnectionError:
+
+        await query.edit_message_text(
+            "⚠️ Could not connect to the college portal."
+        )
+
+    except PortalHTTPError:
+
+        await query.edit_message_text(
+            "⚠️ College portal returned an HTTP error."
+        )
+
+    except PortalError as error:
+
+        logger.error(
+            "Attendance error for Telegram user %s: %s",
+            telegram_id,
+            error
+        )
+
+        await query.edit_message_text(
+            "❌ Could not fetch attendance."
+        )
+
+
 async def attendance(update, context):
 
     telegram_id = update.effective_user.id
@@ -184,6 +350,12 @@ async def attendance(update, context):
             "❌ Could not fetch attendance."
         )
 
+async def attendance(update, context):
+
+    await attendance_months(
+        update,
+        context
+    )
 async def notices(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     query = update.callback_query
@@ -494,6 +666,8 @@ def main():
 
     app.add_handler(CommandHandler("profile", profile))
 
+    app.add_handler(CommandHandler("attendance_month_callback",attendance_month_callback,))
+
     app.add_handler(CommandHandler("attendance", attendance))
 
     app.add_handler(CommandHandler("notice", notices))
@@ -506,10 +680,19 @@ def main():
 
     app.add_handler(CommandHandler("menu", menu))
 
-    app.add_handler(CallbackQueryHandler(button_handler,
-pattern="^(menu|profile|attendance|notices|timetable|logout)$"
-))
-    
+    app.add_handler(
+    CallbackQueryHandler(
+        attendance_month_callback,
+        pattern=r"^attendance_\d{2}$"
+    )
+)
+
+    app.add_handler(
+    CallbackQueryHandler(
+        button_handler,
+        pattern=r"^(menu|profile|attendance|notices|timetable|logout)$"
+    )
+)
     print("Bot is running...")
 
     app.run_polling()
